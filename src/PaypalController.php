@@ -41,16 +41,34 @@ class PaypalController extends BaseController
         {
             return view('hanoivip::payment-paypal-failure', ['error' => __('hanoivip::payment.paypal.timeout')]);
         }
-        $apiContext = Cache::get('payment_paypal_' . $paymentId);
-        $payment = Payment::get($paymentId, $apiContext);
-        $execution = new PaymentExecution();
-        $execution->setPayerId($payerId);
-        $paymentResult = $payment->execute($execution, $apiContext);
-        $this->savePaymentResult($paymentId, $payerId, $paymentResult);
-        if ($paymentResult->getState() == 'approved') {
-            return view('hanoivip::payment-paypal-success');
+        //$apiContext = Cache::get('payment_paypal_' . $paymentId);
+		$cfg = Cache::get('payment_paypal_config_' . $paymentId);
+		$apiContext = $this->config($cfg);
+        try
+        {
+            $payment = Payment::get($paymentId, $apiContext);
+            $execution = new PaymentExecution();
+            $execution->setPayerId($payerId);
+            $paymentResult = $payment->execute($execution, $apiContext);
+            $this->savePaymentResult($paymentId, $payerId, $paymentResult);
+            if ($paymentResult->getState() == 'approved') {
+                return view('hanoivip::payment-paypal-success');
+            }
+            return view('hanoivip::payment-paypal-failure', ['error' => __('hanoivip::payment.paypal.failure')]);
         }
-        return view('hanoivip::payment-paypal-failure', ['error' => __('hanoivip::payment.paypal.failure')]);
+        catch (Exception $ex)
+        {
+            Log::error('Paypal payment verifier error: ' . $ex->getMessage());
+            return view('hanoivip::payment-paypal-failure', ['error' => __('hanoivip::payment.paypal.exception')]);
+            
+        }
+    }
+	
+	private function config($cfg)
+    {
+        $apiContext = new ApiContext(new OAuthTokenCredential($cfg['client_id'], $cfg['secret']));
+        $apiContext->setConfig($cfg['settings']);
+		return $apiContext;
     }
     
     /**

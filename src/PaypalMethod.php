@@ -27,6 +27,8 @@ use Exception;
 class PaypalMethod implements IPaymentMethod
 {
     private $apiContext;
+	
+	private $cfg;
     
     public function endTrans($trans)
     {}
@@ -95,6 +97,8 @@ class PaypalMethod implements IPaymentMethod
         $log->payment_id = $payment->getId();
         $log->save();
         Cache::put('payment_paypal_' . $payment->getId(), $this->apiContext, Carbon::now()->addMinutes(10));
+		// api context can not be serialize to cache
+		Cache::put('payment_paypal_config_' . $payment->getId(), $this->cfg, Carbon::now()->addMinutes(10));
         return new PaypalSession($trans, $payment->getId(), $redirect_url);
     }
 
@@ -105,7 +109,7 @@ class PaypalMethod implements IPaymentMethod
 
     public function query($trans)
     {
-        $log = PaypalTransaction::where('trans', $trans->trans_id);
+        $log = PaypalTransaction::where('trans', $trans->trans_id)->first();
         if (empty($log))
         {
             
@@ -115,6 +119,7 @@ class PaypalMethod implements IPaymentMethod
 
     public function config($cfg)
     {
+		$this->cfg = $cfg;
         $this->apiContext = new ApiContext(new OAuthTokenCredential($cfg['client_id'], $cfg['secret']));
         $this->apiContext->setConfig($cfg['settings']);
     }
