@@ -14,6 +14,7 @@ use PayPal\Api\PaymentExecution;
 use PayPal\Auth\OAuthTokenCredential;
 use PayPal\Rest\ApiContext;
 use Exception;
+use Hanoivip\Events\Payment\TransactionUpdated;
 
 class PaypalController extends BaseController
 {
@@ -25,7 +26,7 @@ class PaypalController extends BaseController
         if (!$request->has('PayerID') && 
             !$request->has('token') && 
             !$request->has('paymentId')) {
-            return view('hanoivip::payment-paypal-failure', ['error' => __('hanoivip::payment.paypal.invalid-callback')]);
+            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::payment.paypal.invalid-callback')]);
         }
         $paymentId = $request->input('paymentId');
         Log::debug('Paypal payment id' . $paymentId);
@@ -35,12 +36,13 @@ class PaypalController extends BaseController
         $log = PaypalTransaction::where('payment_id', $paymentId)->first();
         if (empty($log))
         {
-            return view('hanoivip::payment-paypal-failure', ['error' => __('hanoivip::payment.paypal.payment-id-invalid')]);
+            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::payment.paypal.payment-id-invalid')]);
         }
         if (!Cache::has('payment_paypal_' . $paymentId))
         {
-            return view('hanoivip::payment-paypal-failure', ['error' => __('hanoivip::payment.paypal.timeout')]);
+            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::payment.paypal.timeout')]);
         }
+        //TODO: another way is passing payment method ID to callback url
         //$apiContext = Cache::get('payment_paypal_' . $paymentId);
 		$cfg = Cache::get('payment_paypal_config_' . $paymentId);
 		$apiContext = $this->config($cfg);
@@ -51,23 +53,25 @@ class PaypalController extends BaseController
             $execution->setPayerId($payerId);
             $paymentResult = $payment->execute($execution, $apiContext);
             $this->savePaymentResult($paymentId, $payerId, $paymentResult);
+            // event here
+            event(new TransactionUpdated($log->trans));
             if ($paymentResult->getState() == 'approved') {
-                return view('hanoivip::payment-paypal-success');
+                return view('hanoivip.paypal::payment-paypal-success');
             }
-            return view('hanoivip::payment-paypal-failure', ['error' => __('hanoivip::payment.paypal.failure')]);
+            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::payment.paypal.failure')]);
         }
         catch (Exception $ex)
         {
             Log::error('Paypal payment verifier error: ' . $ex->getMessage());
-            return view('hanoivip::payment-paypal-failure', ['error' => __('hanoivip::payment.paypal.exception')]);
+            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::payment.paypal.exception')]);
             
         }
     }
 	
 	private function config($cfg)
     {
-        $apiContext = new ApiContext(new OAuthTokenCredential($cfg['client_id'], $cfg['secret']));
-        $apiContext->setConfig($cfg['settings']);
+        $apiContext = new ApiContext(new OAuthTokenCredential($cfg['client_id'], $cfg['client_secret']));
+        $apiContext->setConfig($cfg['other_settings']);
 		return $apiContext;
     }
     

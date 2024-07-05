@@ -3,10 +3,9 @@
 namespace Hanoivip\PaymentMethodPaypal;
 
 use Carbon\Carbon;
-use Hanoivip\IapContract\Facades\IapFacade;
 use Hanoivip\PaymentMethodContract\IPaymentMethod;
+use Hanoivip\Shop\Facades\OrderFacade;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\URL;
 use PayPal\Api\Amount;
 use PayPal\Api\Item;
@@ -18,6 +17,7 @@ use PayPal\Api\Transaction;
 use PayPal\Auth\OAuthTokenCredential;
 use PayPal\Rest\ApiContext;
 use Exception;
+use Hanoivip\Payment\Facades\BalanceFacade;
 /**
  * Ref https://medium.com/in-laravel/how-to-integrate-paypal-into-laravel-977bf508c13
  * @author gameo
@@ -25,7 +25,7 @@ use Exception;
  * Session not work in WebView react native
  */
 class PaypalMethod implements IPaymentMethod
-{
+{   
     private $apiContext;
 	
 	private $cfg;
@@ -36,18 +36,55 @@ class PaypalMethod implements IPaymentMethod
     public function cancel($trans)
     {}
 
+    /**
+     * TODO: make abstract class
+     * + Support transaction creation
+     * + Model da hinh
+     * + Check timeout
+     * 
+     * {@inheritDoc}
+     * @see \Hanoivip\PaymentMethodContract\IPaymentMethod::beginTrans()
+     */
     public function beginTrans($trans)
     {
-        $order = $trans->order;
-        $orderDetail = IapFacade::detail($order);
-        $price = intval($orderDetail['item_price']);
+        $exists = PaypalTransaction::where('trans', $trans->trans_id)->get();
+        if ($exists->isNotEmpty())
+            throw new Exception('Paypal transaction already exists');
+        $log = new PaypalTransaction();
+        $log->trans = $trans->trans_id;
+        $log->state = 'created';
+        $log->save();
+        $session = new PaypalSession($trans);
+        return $session;
+    }
+    
+    public function request($trans, $params)
+    {
+        // check trans exists
+        $record = PaypalTransaction::where('trans', $trans->trans_id)->first();
+        if (empty($record))
+        {
+            return new PaypalFailure($trans, __('hanoivip.paypal::paypal.failure.trans-not-exists'));
+        }
+        // check trans timeout
+        //??
         
-        //Log::debug("PaypalMethod " . $price . "@" . print_r($orderDetail, true));
+        $order = $trans->order;
+        $orderDetail = OrderFacade::detail($order);
+        $price = $orderDetail->price;
+        $currency = strtoupper($orderDetail->currency);
+        // convert to USD
+        if ($currency != 'USD')
+        {
+            $price = BalanceFacade::convert($price, $currency, 'USD');
+            $currency = 'USD';
+        }
+        
         $payer = new Payer();
         $payer->setPaymentMethod('paypal');
         $item_1 = new Item();
         $item_1->setName('Order number:' . $order)
-        ->setCurrency('USD')
+        ->setCurrency($currency)
         ->setQuantity(1)
         ->setPrice($price);
         
@@ -57,7 +94,7 @@ class PaypalMethod implements IPaymentMethod
         ));
         
         $amount = new Amount();
-        $amount->setCurrency('USD')->setTotal($price);
+        $amount->setCurrency($currency)->setTotal($price);
         
         $transaction = new Transaction();
         $transaction->setAmount($amount)
@@ -76,7 +113,7 @@ class PaypalMethod implements IPaymentMethod
         
         if (empty($this->apiContext))
         {
-            throw new Exception(__('hanoivip::payment.paypal.config-error'));
+            throw new Exception(__('hanoivip.paypal::payment.paypal.config-error'));
         }
         $payment->create($this->apiContext);
         
@@ -89,25 +126,21 @@ class PaypalMethod implements IPaymentMethod
         }
         if (empty($redirect_url))
         {
-            throw new Exception(__('hanoivip::payment.paypal.payment-not-approved'));
+            throw new Exception(__('hanoivip.paypal::payment.paypal.payment-not-approved'));
         }
         
-        $log = new PaypalTransaction();
-        $log->trans = $trans->trans_id;
-        $log->payment_id = $payment->getId();
-        $log->save();
+        // save log
+        $record->payment_id = $payment->getId();
+        $record->payment_url = $redirect_url;
+        $record->save();
         Cache::put('payment_paypal_' . $payment->getId(), $this->apiContext, Carbon::now()->addMinutes(10));
 		// api context can not be serialize to cache
 		Cache::put('payment_paypal_config_' . $payment->getId(), $this->cfg, Carbon::now()->addMinutes(10));
-        return new PaypalSession($trans, $payment->getId(), $redirect_url);
+        return new PaypalPending($trans, $payment->getId(), $redirect_url);
     }
 
-    public function request($trans, $params)
-    {
-        return $this->query($trans);
-    }
 
-    public function query($trans)
+    public function query($trans, $force = false)
     {
         $log = PaypalTransaction::where('trans', $trans->trans_id)->first();
         if (empty($log))
@@ -120,9 +153,27 @@ class PaypalMethod implements IPaymentMethod
     public function config($cfg)
     {
 		$this->cfg = $cfg;
-        $this->apiContext = new ApiContext(new OAuthTokenCredential($cfg['client_id'], $cfg['secret']));
-        $this->apiContext->setConfig($cfg['settings']);
+        $this->apiContext = new ApiContext(new OAuthTokenCredential($cfg['client_id'], $cfg['client_secret']));
+        $this->apiContext->setConfig($cfg['other_settings']);
     }
+    
+    public function openPaymentPage($transId, $guide, $session)
+    {
+        // no need, just start payemnt
+        return response()->redirectToRoute('newtopup.do', ['trans' => $transId]);
+    }
+
+    public function openPendingPage($trans)
+    {
+        $record = PaypalTransaction::where('trans', $trans->trans_id)->first();
+        return response()->redirectTo($record->payment_url);
+    }
+
+    public function validate($params)
+    {
+        return [];
+    }
+
 
     
 }

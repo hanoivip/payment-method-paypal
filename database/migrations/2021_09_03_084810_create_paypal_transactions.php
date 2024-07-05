@@ -11,7 +11,8 @@ class CreatePaypalTransactions extends Migration
         Schema::create('paypal_transactions', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('trans')->comment('Transaction ID = Purchase token = Receipt ID = Invoice ID..');
-            $table->string('payment_id');
+            $table->string('payment_id')->nullable();
+            $table->string('payment_url')->nullable();
             $table->string('state')->nullable()->comment('created, approved, failed');
             $table->string('payer_id')->nullable();
             $table->string('amount')->nullable();

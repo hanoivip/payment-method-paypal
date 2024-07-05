@@ -12,11 +12,9 @@ class PaypalSession implements IPaymentSession
     
     private $checkoutUrl;
     
-    public function __construct($trans, $paymentId, $checkoutUrl)
+    public function __construct($trans)
     {
         $this->trans = $trans;
-        $this->paymentId = $paymentId;
-        $this->checkoutUrl = $checkoutUrl;
     }
     
     public function getSecureData()

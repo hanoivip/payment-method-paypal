@@ -64,6 +64,12 @@ class PaypalResult implements IPaymentResult
             return $this->log->amount;
         return 0;
     }
+    
+    public function getCurrency()
+    {
+        return 'USD';
+    }
+
 
     
 }
