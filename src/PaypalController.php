@@ -57,7 +57,7 @@ class PaypalController extends BaseController
             if ($paymentResult->getState() == 'approved') {
                 return view('hanoivip.paypal::payment-paypal-success');
             }
-            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.failure')]);
+            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.payment-not-approved')]);
         }
         catch (Exception $ex)
         {

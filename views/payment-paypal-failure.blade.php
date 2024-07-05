@@ -4,6 +4,6 @@
 
 @section('content')
 
-<p>Payment failure</p>
+<p>Payment failure {{$error}}</p>
 
 @endsection
