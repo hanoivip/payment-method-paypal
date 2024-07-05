@@ -38,7 +38,7 @@ class PaypalController extends BaseController
         {
             return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.payment-id-invalid')]);
         }
-        if (!Cache::has('payment_paypal_' . $paymentId))
+        if (!Cache::has('payment_paypal_config_' . $paymentId))
         {
             return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.timeout')]);
         }
