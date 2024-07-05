@@ -26,7 +26,7 @@ class PaypalController extends BaseController
         if (!$request->has('PayerID') && 
             !$request->has('token') && 
             !$request->has('paymentId')) {
-            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::payment.paypal.invalid-callback')]);
+            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.invalid-callback')]);
         }
         $paymentId = $request->input('paymentId');
         Log::debug('Paypal payment id' . $paymentId);
@@ -36,14 +36,13 @@ class PaypalController extends BaseController
         $log = PaypalTransaction::where('payment_id', $paymentId)->first();
         if (empty($log))
         {
-            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::payment.paypal.payment-id-invalid')]);
+            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.payment-id-invalid')]);
         }
         if (!Cache::has('payment_paypal_' . $paymentId))
         {
-            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::payment.paypal.timeout')]);
+            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.timeout')]);
         }
         //TODO: another way is passing payment method ID to callback url
-        //$apiContext = Cache::get('payment_paypal_' . $paymentId);
 		$cfg = Cache::get('payment_paypal_config_' . $paymentId);
 		$apiContext = $this->config($cfg);
         try
@@ -58,12 +57,12 @@ class PaypalController extends BaseController
             if ($paymentResult->getState() == 'approved') {
                 return view('hanoivip.paypal::payment-paypal-success');
             }
-            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::payment.paypal.failure')]);
+            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.failure')]);
         }
         catch (Exception $ex)
         {
             Log::error('Paypal payment verifier error: ' . $ex->getMessage());
-            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::payment.paypal.exception')]);
+            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.exception')]);
             
         }
     }

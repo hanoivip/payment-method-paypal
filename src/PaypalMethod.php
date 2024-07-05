@@ -64,7 +64,7 @@ class PaypalMethod implements IPaymentMethod
         $record = PaypalTransaction::where('trans', $trans->trans_id)->first();
         if (empty($record))
         {
-            return new PaypalFailure($trans, __('hanoivip.paypal::paypal.failure.trans-not-exists'));
+            return new PaypalFailure($trans, __('hanoivip.paypal::payment.trans-not-exists'));
         }
         // check trans timeout
         //??
@@ -113,7 +113,7 @@ class PaypalMethod implements IPaymentMethod
         
         if (empty($this->apiContext))
         {
-            throw new Exception(__('hanoivip.paypal::payment.paypal.config-error'));
+            throw new Exception(__('hanoivip.paypal::payment.config-error'));
         }
         $payment->create($this->apiContext);
         
@@ -126,14 +126,13 @@ class PaypalMethod implements IPaymentMethod
         }
         if (empty($redirect_url))
         {
-            throw new Exception(__('hanoivip.paypal::payment.paypal.payment-not-approved'));
+            throw new Exception(__('hanoivip.paypal::payment.payment-not-approved'));
         }
         
         // save log
         $record->payment_id = $payment->getId();
         $record->payment_url = $redirect_url;
         $record->save();
-        Cache::put('payment_paypal_' . $payment->getId(), $this->apiContext, Carbon::now()->addMinutes(10));
 		// api context can not be serialize to cache
 		Cache::put('payment_paypal_config_' . $payment->getId(), $this->cfg, Carbon::now()->addMinutes(10));
         return new PaypalPending($trans, $payment->getId(), $redirect_url);
