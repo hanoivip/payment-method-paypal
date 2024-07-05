@@ -15,12 +15,13 @@ use PayPal\Auth\OAuthTokenCredential;
 use PayPal\Rest\ApiContext;
 use Exception;
 use Hanoivip\Events\Payment\TransactionUpdated;
+use Hanoivip\PaymentContract\Facades\PaymentFacade;
 
 class PaypalController extends BaseController
 {
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
     
-    public function callback(Request $request)
+    public function callback(Request $request, $id)
     {
         Log::debug("Paypal callback dump:" . print_r($request->all(), true));
         if (!$request->has('PayerID') && 
@@ -38,12 +39,11 @@ class PaypalController extends BaseController
         {
             return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.payment-id-invalid')]);
         }
-        if (!Cache::has('payment_paypal_config_' . $paymentId))
-        {
-            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.timeout')]);
-        }
-        //TODO: another way is passing payment method ID to callback url
-		$cfg = Cache::get('payment_paypal_config_' . $paymentId);
+        //if (!Cache::has('payment_paypal_config_' . $paymentId))
+        //{
+        //    return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.timeout')]);
+        //}
+        $cfg = PaymentFacade::getConfig($id);
 		$apiContext = $this->config($cfg);
         try
         {
@@ -65,6 +65,11 @@ class PaypalController extends BaseController
             return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.exception')]);
             
         }
+    }
+    
+    public function cancel(Request $request)
+    {
+        return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.payment-canceled')]);
     }
 	
 	private function config($cfg)

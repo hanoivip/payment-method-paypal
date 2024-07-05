@@ -103,7 +103,9 @@ class PaypalMethod implements IPaymentMethod
         ->setCustom($order);
         
         $redirect_urls = new RedirectUrls();
-        $redirect_urls->setReturnUrl(URL::route('payment.paypal.callback'))->setCancelUrl(URL::route('payment.paypal.callback'));
+        $redirect_urls
+        ->setReturnUrl(URL::route('payment.paypal.callback', ['id' => $this->cfg['id']]))
+        ->setCancelUrl(URL::route('payment.paypal.cancel'));
         
         $payment = new Payment();
         $payment->setIntent('Sale')
@@ -134,7 +136,7 @@ class PaypalMethod implements IPaymentMethod
         $record->payment_url = $redirect_url;
         $record->save();
 		// api context can not be serialize to cache
-		Cache::put('payment_paypal_config_' . $payment->getId(), $this->cfg, Carbon::now()->addMinutes(10));
+		//Cache::put('payment_paypal_config_' . $payment->getId(), $this->cfg, Carbon::now()->addMinutes(10));
         return new PaypalPending($trans, $payment->getId(), $redirect_url);
     }
 
