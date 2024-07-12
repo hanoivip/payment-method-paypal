@@ -11,12 +11,15 @@ class PaypalPending implements IPaymentResult
      * @var string transaction id
      */
     private $trans;
+	
+	private $paymentId;
     
     private $url;
     
-    public function __construct($trans, $url)
+    public function __construct($trans, $paymentId, $url)
     {
         $this->trans = $trans;
+		$this->paymentId = $paymentId;
         $this->url = $url;
     }
     
