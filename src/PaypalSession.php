@@ -24,7 +24,7 @@ class PaypalSession implements IPaymentSession
 
     public function getGuide()
     {
-        return __('hanoivip::payment.paypal.guide');
+        return __('hanoivip.paypal::ui.guide');
     }
 
     public function getTransId()
