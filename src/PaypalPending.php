@@ -25,7 +25,7 @@ class PaypalPending implements IPaymentResult
     
     public function getDetail()
     {
-        return ['checkoutUrl'=>$this->url];
+        return json_encode(['checkoutUrl'=>$this->url]);
     }
     
     public function isPending()
