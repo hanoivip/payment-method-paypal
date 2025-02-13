@@ -16,7 +16,7 @@ class FakePaypalController extends BaseController
 {
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
     
-    public function callback(Request $request, $id)
+    public function callback(Request $request)
     {
         $order = $request->input('order');
         $status = $request->input('status');// success, failure, cancel
@@ -24,7 +24,7 @@ class FakePaypalController extends BaseController
         $log = PaypalTransaction::where('payment_id', $order)->first();
         if (empty($log))
         {
-            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.payment-id-invalid')]);
+            return 'err1';
         }
         
         try
@@ -33,21 +33,21 @@ class FakePaypalController extends BaseController
             // event here
             event(new TransactionUpdated($log->trans));
             if ($status == 'success') {
-                return view('hanoivip.paypal::payment-paypal-success');
+                return 'ok';
             }
-            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.payment-not-approved')]);
+            return 'ok1';
         }
         catch (Exception $ex)
         {
             Log::error('Paypal payment verifier error: ' . $ex->getMessage());
-            return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.exception')]);
+            return 'err2';
             
         }
     }
     
     public function cancel(Request $request)
     {
-        return view('hanoivip.paypal::payment-paypal-failure', ['error' => __('hanoivip.paypal::callback.payment-canceled')]);
+        return 'ok';
     }
 	
     
