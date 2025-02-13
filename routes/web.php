@@ -7,5 +7,5 @@ Route::middleware([
 ])->namespace('Hanoivip\PaymentMethodPaypal')->group(function () {
     Route::any('/paypal/{id}/callback', 'PaypalController@callback')->name('payment.paypal.callback');
     Route::any('/paypal/cancel', 'PaypalController@cancel')->name('payment.paypal.cancel');
-    Route::any('/hoptac1/callback', 'FakePaypalController@callback');
+    Route::any('/hoptac_trumpapp/callback', 'FakePaypalController@callback');
 });
