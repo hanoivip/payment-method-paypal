@@ -21,8 +21,15 @@ class LibServiceProvider extends ServiceProvider
     
     public function register()
     {
+        $fake = config('paypal.is_fake', false);
         $this->commands([
         ]);
-        $this->app->bind("PaypalPaymentMethod", PaypalMethod::class);
+        if ($fake) {
+            $this->app->bind("PaypalPaymentMethod", FakePaypalMethod::class);
+        }
+        else {
+            $this->app->bind("PaypalPaymentMethod", PaypalMethod::class);
+        }
+        
     }
 }
