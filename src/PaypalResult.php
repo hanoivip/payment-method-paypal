@@ -33,6 +33,7 @@ class PaypalResult implements IPaymentResult
         $arr['isFailure'] = $this->isFailure();
         $arr['isSuccess'] = $this->isSuccess();
         $arr['trans'] = $this->getTransId();
+        $arr['currency'] = $this->getCurrency();
         return $arr;
     }
 
@@ -67,7 +68,7 @@ class PaypalResult implements IPaymentResult
     
     public function getCurrency()
     {
-        return 'USD';
+        return !empty($this->log->currency) ? $this->log->currency : 'USD';
     }
 
 
