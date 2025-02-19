@@ -19,11 +19,11 @@ class FakePaypalMethod extends PaypalMethod
         $orderDetail = OrderFacade::detail($order);
         $price = $orderDetail->price;
         $currency = strtoupper($orderDetail->currency);
-        // convert to USD
-        if ($currency != 'USD')
+        // convert to VND
+        if ($currency != 'VND')
         {
-            $price = BalanceFacade::convert($price, $currency, 'USD');
-            $currency = 'USD';
+            $price = BalanceFacade::convert($price, $currency, 'VND');
+            $currency = 'VND';
         }
         
         // save log
