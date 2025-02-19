@@ -29,7 +29,8 @@ class FakePaypalController extends BaseController
         
         try
         {
-            $this->savePaymentResult($order, "fake", $status);
+            $paypalStatusMap = ['success' => 'approved', 'failure' => 'failed', 'cancel' => 'canceled'];
+            $this->savePaymentResult($order, "fake", $paypalStatusMap[$status]);
             // event here
             event(new TransactionUpdated($log->trans));
             if ($status == 'success') {
