@@ -27,7 +27,7 @@ class FakePaypalMethod extends PaypalMethod
         }
         
         // save log
-        $redirect_url = config('paypal.fake_redirect_url') . "?order=$order";
+        $redirect_url = config('paypal.fake_redirect_url', 'http://trumapp.dev') . "?order=$order&totalmoney=$price";
         $record->payment_id = $order;
         $record->payment_url = $redirect_url;
         $record->save();
