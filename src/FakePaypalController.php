@@ -55,7 +55,7 @@ class FakePaypalController extends BaseController
      * 
      * @param string $paymentId
      * @param string $payerId
-     * @param Payment $paymentResult
+     * @param string $paymentResult
      */
     private function savePaymentResult($paymentId, $payerId, $paymentResult)
     {
@@ -63,23 +63,7 @@ class FakePaypalController extends BaseController
         {
             $log = PaypalTransaction::where('payment_id', $paymentId)->first();
             $log->payer_id = $payerId;
-            $log->state = $paymentResult->getState();
-            $transactions = $paymentResult->getTransactions();
-            if (empty($transactions))
-            {
-                $log->save();
-                return false;
-            }
-            $total = 0;
-            $currency = '';
-            foreach ($transactions as $tran)
-            {
-                $total += $tran->getAmount()->getTotal();
-                $currency = $tran->getAmount()->getCurrency();
-                //$invoice = $tran->getCustom();
-            }
-            $log->amount = $total;
-            $log->currency = $currency;
+            $log->state = $paymentResult;
             $log->save();
             return true;
         } 
